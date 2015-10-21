@@ -1,0 +1,28 @@
+{
+  "name": "sc-collection",
+  "version": "1.0.1",
+  "homepage": "https://github.com/SocketCluster/sc-collection",
+  "authors": [
+    "Jonathan Gros-Dubois <grosjona@yahoo.com.au>"
+  ],
+  "description": "Collection model component for Polymer and SocketCluster",
+  "keywords": [
+    "Polymer",
+    "CRUD",
+    "SocketCluster",
+    "Realtime"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "public/bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "polymer": "1.1.5",
+    "sc-socket": "*"
+  }
+}
