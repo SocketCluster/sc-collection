@@ -58,6 +58,10 @@
           value: true,
           observer: 'realtimeModeObserver'
         },
+        writeOnly: {
+          type: Boolean,
+          value: false
+        },
         socket: {
           type: Object
         },
@@ -70,17 +74,23 @@
       },
 
       attached: function () {
-        this.loadValue();
+        if (!this.writeOnly) {
+          this.loadValue();
+        }
       },
 
       loadValueObserver: function () {
-        if (this.resourceType != null && this.resourceView != null) {
+        if (this.resourceType != null && this.resourceView != null && !this.writeOnly) {
           this.loadValue();
         }
       },
 
       loadValue: function () {
         var self = this;
+
+        if (this.writeOnly) {
+          throw new Error('Cannot load values for an sc-collection declared as write-only');
+        }
 
         if (!this.viewChangeWatcher) {
           this.viewChangeWatcher = function (packet) {
@@ -174,7 +184,9 @@
       realtimeModeObserver: function (newValue) {
         if (this.socket) {
           if (newValue) {
-            this.loadValue();
+            if (!this.writeOnly) {
+              this.loadValue();
+            }
           } else {
             this.cleanupChannels();
           }
@@ -220,7 +232,9 @@
       },
 
       reloadCurrentPage: function () {
-        this.loadValue();
+        if (!this.writeOnly) {
+          this.loadValue();
+        }
       },
 
       fetchNextPage: function () {
