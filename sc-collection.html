@@ -53,7 +53,7 @@
           value: true,
           observer: 'loadValueObserver'
         },
-        realtime: {
+        disableRealtime: {
           type: Boolean,
           value: false,
           observer: 'realtimeModeObserver'
@@ -108,7 +108,7 @@
         }
 
         if (this.socket) {
-          if (this.realtime) {
+          if (!this.disableRealtime) {
             this.setupChannels();
           }
 
@@ -184,11 +184,11 @@
       realtimeModeObserver: function (newValue) {
         if (this.socket) {
           if (newValue) {
+            this.cleanupChannels();
+          } else {
             if (!this.writeOnly) {
               this.loadValue();
             }
-          } else {
-            this.cleanupChannels();
           }
         }
       },
