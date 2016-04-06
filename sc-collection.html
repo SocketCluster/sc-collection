@@ -67,7 +67,7 @@
           type: Boolean,
           value: false
         },
-        optimized: {
+        optimize: {
           type: Boolean,
           value: false
         },
@@ -217,7 +217,7 @@
           this.viewChannel.watch(this.viewChangeWatcher);
         }
 
-        if (!this.optimized) {
+        if (!this.optimize) {
           var typeChannelName = channelPrefix + this.resourceType;
           if (!this.socket.watchers(typeChannelName).length) {
             this.typeChannel = this.socket.subscribe(typeChannelName);
@@ -281,7 +281,7 @@
           predicateData: this.resourcePredicateData,
           value: newValue
         };
-        if (this.optimized) {
+        if (this.optimize) {
           query.optimization = this.getOptimization();
         }
         this.socket.emit('create', query, callback);
@@ -294,7 +294,7 @@
           type: this.resourceType,
           predicateData: this.resourcePredicateData
         };
-        if (this.optimized) {
+        if (this.optimize) {
           query.optimization = this.getOptimization();
         }
         this.socket.emit('delete', query, callback);
