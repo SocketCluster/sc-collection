@@ -1,5 +1,6 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../sc-socket/sc-socket.html">
+<script type="text/javascript" src="./json-stable-stringify.js"></script>
 
 <dom-module id="sc-collection">
   <template>
@@ -11,6 +12,10 @@
       is: 'sc-collection',
 
       properties: {
+        isReady: {
+          type: Boolean,
+          value: false
+        },
         resourceType: {
           type: String,
           observer: 'loadValueObserver'
@@ -62,6 +67,10 @@
           type: Boolean,
           value: false
         },
+        optimized: {
+          type: Boolean,
+          value: false
+        },
         socket: {
           type: Object
         },
@@ -74,9 +83,7 @@
       },
 
       attached: function () {
-        if (!this.writeOnly) {
-          this.loadValue();
-        }
+        this.loadValueObserver();
       },
 
       loadValueObserver: function () {
@@ -178,6 +185,7 @@
           if (this.socket.state == 'open') {
             loadData();
           }
+          this.isReady = true;
         }
       },
 
@@ -195,18 +203,26 @@
 
       setupChannels: function () {
         var channelPrefix = 'crud>';
+        var predicateDataString;
+        if (this.resourcePredicateData == null) {
+          predicateDataString = '';
+        } else {
+          predicateDataString = jsonStableStringify(this.resourcePredicateData);
+        }
         var viewChannelName = channelPrefix + this.resourceView +
-          '(' + JSON.stringify(this.resourcePredicateData) + '):' + this.resourceType;
+          '(' + predicateDataString + '):' + this.resourceType;
 
         if (!this.socket.watchers(viewChannelName).length) {
           this.viewChannel = this.socket.subscribe(viewChannelName);
           this.viewChannel.watch(this.viewChangeWatcher);
         }
 
-        var typeChannelName = channelPrefix + this.resourceType;
-        if (!this.socket.watchers(typeChannelName).length) {
-          this.typeChannel = this.socket.subscribe(typeChannelName);
-          this.typeChannel.watch(this.typeChangeWatcher);
+        if (!this.optimized) {
+          var typeChannelName = channelPrefix + this.resourceType;
+          if (!this.socket.watchers(typeChannelName).length) {
+            this.typeChannel = this.socket.subscribe(typeChannelName);
+            this.typeChannel.watch(this.typeChangeWatcher);
+          }
         }
       },
 
@@ -253,12 +269,21 @@
         }
       },
 
+      getOptimization: function () {
+        var optimization = {};
+        optimization[this.resourceView] = this.resourcePredicateData || null;
+        return optimization;
+      },
+
       create: function (newValue, callback) {
         var query = {
           type: this.resourceType,
           predicateData: this.resourcePredicateData,
           value: newValue
         };
+        if (this.optimized) {
+          query.optimization = this.getOptimization();
+        }
         this.socket.emit('create', query, callback);
       },
 
@@ -269,6 +294,9 @@
           type: this.resourceType,
           predicateData: this.resourcePredicateData
         };
+        if (this.optimized) {
+          query.optimization = this.getOptimization();
+        }
         this.socket.emit('delete', query, callback);
       }
     });
