@@ -101,10 +101,14 @@
 
         if (!this.viewChangeWatcher) {
           this.viewChangeWatcher = function (packet) {
-            var collectionStart = self.resourcePageOffset || 0;
-            var collectionEnd = collectionStart + self.resourcePageSize;
-            if (packet.offset <= collectionEnd) {
+            if (packet == null) {
               self.reloadCurrentPage();
+            } else {
+              var collectionStart = self.resourcePageOffset || 0;
+              var collectionEnd = collectionStart + self.resourcePageSize;
+              if (packet.offset <= collectionEnd) {
+                self.reloadCurrentPage();
+              }
             }
           };
         }
