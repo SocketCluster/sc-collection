@@ -123,28 +123,25 @@
             this.setupChannels();
           }
 
-          var query = {
-            type: this.resourceType
-          };
-
-          query.offset = this.resourcePageOffset || 0;
-
-          if (this.resourceView != null) {
-            query.view = this.resourceView;
-          }
-
-          if (this.resourcePredicateData != null) {
-            query.predicateData = this.resourcePredicateData;
-          }
-          if (this.resourcePageSize) {
-            query.pageSize = this.resourcePageSize;
-          }
-          if (this.getCount) {
-            query.getCount = true;
-          }
-
           // Load values for the collection
           var loadData = function () {
+            var query = {
+              type: self.resourceType
+            };
+            query.offset = self.resourcePageOffset || 0;
+            if (self.resourceView != null) {
+              query.view = self.resourceView;
+            }
+            if (self.resourcePredicateData != null) {
+              query.predicateData = self.resourcePredicateData;
+            }
+            if (self.resourcePageSize) {
+              query.pageSize = self.resourcePageSize;
+            }
+            if (self.getCount) {
+              query.getCount = true;
+            }
+
             self.socket.emit('read', query, function (err, result) {
               if (err) {
                 throw new Error(err);
