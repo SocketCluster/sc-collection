@@ -22,6 +22,7 @@
     "tests"
   ],
   "dependencies": {
+    "sc-json-stable-stringify": "1.1.x",
     "polymer": "1.4.0",
     "sc-socket": "*"
   }
