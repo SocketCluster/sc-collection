@@ -87,7 +87,7 @@
       },
 
       loadValueObserver: function () {
-        if (this.resourceType != null && this.resourceView != null && !this.writeOnly) {
+        if (this.resourceType != null && this.resourceView != null && !this.writeOnly && this.resourcePredicateData !== undefined) {
           this.loadValue();
         }
       },
