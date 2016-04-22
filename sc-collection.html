@@ -72,7 +72,8 @@
           value: false
         },
         socket: {
-          type: Object
+          type: Object,
+          observer: 'loadValueObserver'
         },
         viewChannel: {
           type: Object
@@ -82,12 +83,8 @@
         }
       },
 
-      attached: function () {
-        this.loadValueObserver();
-      },
-
       loadValueObserver: function () {
-        if (this.resourceType != null && this.resourceView != null && !this.writeOnly && this.resourcePredicateData !== undefined) {
+        if (this.socket && this.resourceType != null && this.resourceView != null && !this.writeOnly && this.resourcePredicateData !== undefined) {
           this.loadValue();
         }
       },
@@ -117,7 +114,6 @@
             self.reloadCurrentPage();
           };
         }
-
         if (this.socket) {
           if (!this.disableRealtime) {
             this.setupChannels();
