@@ -196,7 +196,7 @@
             this.cleanupChannels();
           } else {
             if (!this.writeOnly) {
-              this.loadValue();
+              this.loadValueObserver();
             }
           }
         }
@@ -250,7 +250,7 @@
 
       reloadCurrentPage: function () {
         if (!this.writeOnly) {
-          this.loadValue();
+          this.loadValueObserver();
         }
       },
 
