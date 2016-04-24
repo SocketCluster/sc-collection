@@ -96,31 +96,11 @@
           throw new Error('Cannot load values for an sc-collection declared as write-only');
         }
 
-        if (!this.viewChangeWatcher) {
-          this.viewChangeWatcher = function (packet) {
-            if (packet == null) {
-              self.reloadCurrentPage();
-            } else {
-              var collectionStart = self.resourcePageOffset || 0;
-              var collectionEnd = collectionStart + self.resourcePageSize;
-              if (packet.offset <= collectionEnd) {
-                self.reloadCurrentPage();
-              }
-            }
-          };
-        }
-        if (!this.typeChangeWatcher) {
-          this.typeChangeWatcher = function (packet) {
-            self.reloadCurrentPage();
-          };
-        }
         if (this.socket) {
-          if (!this.disableRealtime) {
-            this.setupChannels();
-          }
+          this.cleanupChannels();
 
-          // Load values for the collection
-          var loadData = function () {
+          // Load values for the collection.
+          this.loadData = function () {
             var query = {
               type: self.resourceType
             };
@@ -173,15 +153,74 @@
             });
           };
 
-          // This is to account for socket reconnects - After recovering from a lost connection,
-          // we will re-fetch the whole value to make sure that we haven't missed any updates made to it
-          this.socket.on('connect', function (status) {
-            loadData();
-          });
+          if (this.disableRealtime) {
+            // This is to account for socket reconnects - After recovering from a lost connection,
+            // we will re-fetch the whole value to make sure that we haven't missed any updates made to it.
+            this.socket.on('connect', function (status) {
+              self.loadData();
+            });
 
-          if (this.socket.state == 'open') {
-            loadData();
+            if (this.socket.state == 'open') {
+              self.loadData();
+            }
+          } else {
+            this.setupChannels();
+
+            if (!this.viewChangeWatcher) {
+              this.viewChangeWatcher = function (packet) {
+                if (packet == null) {
+                  self.reloadCurrentPage();
+                } else {
+                  var collectionStart = self.resourcePageOffset || 0;
+                  var collectionEnd = collectionStart + self.resourcePageSize;
+                  if (packet.offset <= collectionEnd) {
+                    self.reloadCurrentPage();
+                  }
+                }
+              };
+              this.viewChannel.watch(this.viewChangeWatcher);
+            }
+            if (!this.optimize && !this.typeChangeWatcher) {
+              this.typeChangeWatcher = function (packet) {
+                self.reloadCurrentPage();
+              };
+              this.typeChannel.watch(this.typeChangeWatcher);
+            }
+
+            if (!this.resubscribe) {
+              // This is needed to recover from lost authentication.
+              this.resubscribe = function () {
+                self.setupChannels();
+              };
+            }
+
+            this.loadDataIfAllChannelsAreSubscribed = function () {
+              if (self.viewChannel.state == 'subscribed' &&
+                (self.optimize || self.typeChannel.state == 'subscribed')) {
+
+                self.loadData();
+              }
+            };
+
+            // Fetch data once the subscriptions are successful.
+            if (this.viewChannel.listeners('subscribe')
+              .indexOf(this.loadDataIfAllChannelsAreSubscribed) == -1) {
+
+              this.viewChannel.on('subscribe', this.loadDataIfAllChannelsAreSubscribed);
+            }
+            if (!this.optimize &&
+              this.typeChannel.listeners('subscribe')
+              .indexOf(this.loadDataIfAllChannelsAreSubscribed) == -1) {
+
+              this.typeChannel.on('subscribe', this.loadDataIfAllChannelsAreSubscribed);
+            }
+            this.loadDataIfAllChannelsAreSubscribed();
+
+            if (this.socket.listeners('authenticate').indexOf(this.resubscribe) == -1) {
+              this.socket.on('authenticate', this.resubscribe);
+            }
           }
+
           this.isReady = true;
         }
       },
@@ -209,34 +248,52 @@
         var viewChannelName = channelPrefix + this.resourceView +
           '(' + predicateDataString + '):' + this.resourceType;
 
-        if (!this.socket.watchers(viewChannelName).length) {
+        if (this.viewChannel) {
+          this.socket.subscribe(viewChannelName);
+        } else {
           this.viewChannel = this.socket.subscribe(viewChannelName);
-          this.viewChannel.watch(this.viewChangeWatcher);
         }
 
         if (!this.optimize) {
           var typeChannelName = channelPrefix + this.resourceType;
-          if (!this.socket.watchers(typeChannelName).length) {
+
+          if (this.typeChannel) {
+            this.socket.subscribe(typeChannelName);
+          } else {
             this.typeChannel = this.socket.subscribe(typeChannelName);
-            this.typeChannel.watch(this.typeChangeWatcher);
           }
         }
       },
 
       cleanupChannels: function () {
+        if (this.resubscribe) {
+          this.socket.off('authenticate', this.resubscribe);
+        }
         if (this.viewChannel) {
-          this.viewChannel.unwatch(this.viewChangeWatcher);
-
+          if (this.loadDataIfAllChannelsAreSubscribed) {
+            this.viewChannel.off('subscribe', this.loadDataIfAllChannelsAreSubscribed);
+          }
+          if (this.viewChangeWatcher) {
+            this.viewChannel.unwatch(this.viewChangeWatcher);
+            delete this.viewChangeWatcher;
+          }
           if (!this.viewChannel.watchers().length) {
             this.viewChannel.unsubscribe();
           }
+          delete this.viewChannel;
         }
         if (this.typeChannel) {
-          this.typeChannel.unwatch(this.typeChangeWatcher);
-
+          if (this.loadDataIfAllChannelsAreSubscribed) {
+            this.typeChannel.off('subscribe', this.loadDataIfAllChannelsAreSubscribed);
+          }
+          if (this.typeChangeWatcher) {
+            this.typeChannel.unwatch(this.typeChangeWatcher);
+            delete this.typeChangeWatcher;
+          }
           if (!this.typeChannel.watchers().length) {
             this.typeChannel.unsubscribe();
           }
+          delete this.typeChannel;
         }
       },
 
