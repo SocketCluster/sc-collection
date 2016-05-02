@@ -71,6 +71,9 @@
           type: Boolean,
           value: false
         },
+        optimization: {
+          type: Object
+        },
         socket: {
           type: Object,
           observer: 'loadValueObserver'
@@ -324,8 +327,30 @@
       },
 
       getOptimization: function () {
+        if (!this.optimization && !this.optimize) {
+          return null;
+        }
         var optimization = {};
-        optimization[this.resourceView] = this.resourcePredicateData || null;
+        for (var viewName in this.optimization) {
+          if (this.optimization.hasOwnProperty(viewName)) {
+            optimization[viewName] = this.optimization[viewName];
+          }
+        }
+        if (this.optimize) {
+          var existingViewOptimization = optimization[this.resourceView];
+          if (existingViewOptimization) {
+            if (existingViewOptimization instanceof Array) {
+              existingViewOptimization.push(this.resourcePredicateData);
+            } else {
+              optimization[this.resourceView] = [
+                existingViewOptimization,
+                this.resourcePredicateData
+              ];
+            }
+          } else {
+            optimization[this.resourceView] = this.resourcePredicateData || null;
+          }
+        }
         return optimization;
       },
 
@@ -334,8 +359,9 @@
           type: this.resourceType,
           value: newValue
         };
-        if (this.optimize) {
-          query.optimization = this.getOptimization();
+        var optimization = this.getOptimization();
+        if (optimization) {
+          query.optimization = optimization;
         }
         this.socket.emit('create', query, callback);
       },
@@ -346,8 +372,9 @@
         var query = {
           type: this.resourceType
         };
-        if (this.optimize) {
-          query.optimization = this.getOptimization();
+        var optimization = this.getOptimization();
+        if (optimization) {
+          query.optimization = optimization;
         }
         this.socket.emit('delete', query, callback);
       }
