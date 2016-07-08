@@ -19,7 +19,7 @@ See https://github.com/socketcluster/sc-sample-inventory for sample app which de
 This is what an sc-collection might look like:
 
 ```html
-<sc-collection id="category-products" realtime="{{realtime}}" resource-type="Product" resource-value="{{categoryProducts}}" resource-view="categoryView" resource-predicate-data="{{categoryId}}" resource-page-offset="{{pageOffsetStart}}" resource-page-size="{{pageSize}}" resource-count="{{itemCount}}"></sc-collection>
+<sc-collection id="category-products" realtime="{{realtime}}" resource-type="Product" resource-value="{{categoryProducts}}" resource-view="categoryView" resource-view-parms="{{viewParmsObject}}" resource-page-offset="{{pageOffsetStart}}" resource-page-size="{{pageSize}}" resource-count="{{itemCount}}"></sc-collection>
 
 ```
 
@@ -44,10 +44,10 @@ See https://github.com/SocketCluster/sc-field for more details.
 The sc-collection tag supports the following attributes:
 
 - ```resource-type```: This is the model/table name in RethinkDB.
-- ```resource-view```: The view to use for this collection. See https://github.com/SocketCluster/sc-crud-rethink for details about views.
 - ```resource-value```: The binding for the current page of results/documents from RethinkDB (updated in realtime) - This is the output of the component.
-- ```resource-predicate-data```: This can be any value (any JSON-compatible type) which will be used for filtering results for your view. This attribute is compulsory - If you don't need any predicate data on the server-side, just set it to null or declare the attribute on the tag without any value.
-If you are using the sc-crud-rethink plugin on the backend, this data will be passed as the second argument to both your filter and order functions. See ```categoryId``` here: https://github.com/SocketCluster/sc-sample-inventory/blob/master/worker.js#L58
+- ```resource-view```: The view to use for this collection. See https://github.com/SocketCluster/sc-crud-rethink for details about views.
+- ```resource-view-params```: This should be a JSON object which will be used for filtering results for your view. This attribute is compulsory - If you don't need any view params on the server-side, just set it to null or declare the attribute on the tag without any value.
+If you are using the sc-crud-rethink plugin on the backend, this data will be passed as the third argument to your transform function on your schema.
 - ```resource-page-offset```: An integer which represents the current page of results within the collection.
 - ```resource-page-size```: The number of results per page.
 - ```resource-count```: This outputs the total number of documents within the view/collection.

@@ -45,7 +45,7 @@
           type: Boolean,
           notify: true
         },
-        resourcePredicateData: {
+        resourceViewParams: {
           type: Object,
           observer: 'loadValueObserver'
         },
@@ -67,27 +67,17 @@
           type: Boolean,
           value: false
         },
-        optimize: {
-          type: Boolean,
-          value: false
-        },
-        optimization: {
-          type: Object
-        },
         socket: {
           type: Object,
           observer: 'loadValueObserver'
         },
         viewChannel: {
           type: Object
-        },
-        typeChannel: {
-          type: Object
         }
       },
 
       loadValueObserver: function () {
-        if (this.socket && this.resourceType != null && this.resourceView != null && !this.writeOnly && this.resourcePredicateData !== undefined) {
+        if (this.socket && this.resourceType != null && this.resourceView != null && !this.writeOnly && this.resourceViewParams !== undefined) {
           this.loadValue();
         }
       },
@@ -111,8 +101,8 @@
             if (self.resourceView != null) {
               query.view = self.resourceView;
             }
-            if (self.resourcePredicateData != null) {
-              query.predicateData = self.resourcePredicateData;
+            if (self.resourceViewParams != null) { // TODO: Rename to viewParams
+              query.viewParams = self.resourceViewParams;
             }
             if (self.resourcePageSize) {
               query.pageSize = self.resourcePageSize;
@@ -183,12 +173,6 @@
               };
               this.viewChannel.watch(this.viewChangeWatcher);
             }
-            if (!this.optimize && !this.typeChangeWatcher) {
-              this.typeChangeWatcher = function (packet) {
-                self.reloadCurrentPage();
-              };
-              this.typeChannel.watch(this.typeChangeWatcher);
-            }
 
             if (!this.resubscribe) {
               // This is needed to recover from lost authentication.
@@ -198,9 +182,7 @@
             }
 
             this.loadDataIfAllChannelsAreSubscribed = function () {
-              if (self.viewChannel.state == 'subscribed' &&
-                (self.optimize || self.typeChannel.state == 'subscribed')) {
-
+              if (self.viewChannel.state == 'subscribed') {
                 self.loadData();
               }
             };
@@ -210,12 +192,6 @@
               .indexOf(this.loadDataIfAllChannelsAreSubscribed) == -1) {
 
               this.viewChannel.on('subscribe', this.loadDataIfAllChannelsAreSubscribed);
-            }
-            if (!this.optimize &&
-              this.typeChannel.listeners('subscribe')
-              .indexOf(this.loadDataIfAllChannelsAreSubscribed) == -1) {
-
-              this.typeChannel.on('subscribe', this.loadDataIfAllChannelsAreSubscribed);
             }
             this.loadDataIfAllChannelsAreSubscribed();
 
@@ -242,29 +218,19 @@
 
       setupChannels: function () {
         var channelPrefix = 'crud>';
-        var predicateDataString;
-        if (this.resourcePredicateData == null) {
-          predicateDataString = '';
+        var resourceViewParamsString;
+        if (this.resourceViewParams == null) {
+          resourceViewParamsString = '';
         } else {
-          predicateDataString = jsonStableStringify(this.resourcePredicateData);
+          resourceViewParamsString = jsonStableStringify(this.resourceViewParams);
         }
         var viewChannelName = channelPrefix + this.resourceView +
-          '(' + predicateDataString + '):' + this.resourceType;
+          '(' + resourceViewParamsString + '):' + this.resourceType;
 
         if (this.viewChannel) {
           this.socket.subscribe(viewChannelName);
         } else {
           this.viewChannel = this.socket.subscribe(viewChannelName);
-        }
-
-        if (!this.optimize) {
-          var typeChannelName = channelPrefix + this.resourceType;
-
-          if (this.typeChannel) {
-            this.socket.subscribe(typeChannelName);
-          } else {
-            this.typeChannel = this.socket.subscribe(typeChannelName);
-          }
         }
       },
 
@@ -284,19 +250,6 @@
             this.viewChannel.unsubscribe();
           }
           delete this.viewChannel;
-        }
-        if (this.typeChannel) {
-          if (this.loadDataIfAllChannelsAreSubscribed) {
-            this.typeChannel.off('subscribe', this.loadDataIfAllChannelsAreSubscribed);
-          }
-          if (this.typeChangeWatcher) {
-            this.typeChannel.unwatch(this.typeChangeWatcher);
-            delete this.typeChangeWatcher;
-          }
-          if (!this.typeChannel.watchers().length) {
-            this.typeChannel.unsubscribe();
-          }
-          delete this.typeChannel;
         }
       },
 
@@ -326,43 +279,11 @@
         }
       },
 
-      getOptimization: function () {
-        if (!this.optimization && !this.optimize) {
-          return null;
-        }
-        var optimization = {};
-        for (var viewName in this.optimization) {
-          if (this.optimization.hasOwnProperty(viewName)) {
-            optimization[viewName] = this.optimization[viewName];
-          }
-        }
-        if (this.optimize) {
-          var existingViewOptimization = optimization[this.resourceView];
-          if (existingViewOptimization) {
-            if (existingViewOptimization instanceof Array) {
-              existingViewOptimization.push(this.resourcePredicateData);
-            } else {
-              optimization[this.resourceView] = [
-                existingViewOptimization,
-                this.resourcePredicateData
-              ];
-            }
-          } else {
-            optimization[this.resourceView] = this.resourcePredicateData || null;
-          }
-        }
-        return optimization;
-      },
-
       create: function (newValue, callback) {
         var query = {
           type: this.resourceType,
           value: newValue
         };
-        var optimization = this.getOptimization();
-        if (optimization) {
-          query.optimization = optimization;
-        }
         this.socket.emit('create', query, callback);
       },
 
@@ -372,10 +293,6 @@
         var query = {
           type: this.resourceType
         };
-        var optimization = this.getOptimization();
-        if (optimization) {
-          query.optimization = optimization;
-        }
         this.socket.emit('delete', query, callback);
       }
     });
