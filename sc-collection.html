@@ -218,7 +218,7 @@
 
       setupChannels: function () {
         var channelPrefix = 'crud>';
-        var resourceViewParamsString = jsonStableStringify(this.resourceViewParams);
+        var resourceViewParamsString = jsonStableStringify(this.resourceViewParams || {});
         var viewChannelName = channelPrefix + this.resourceView +
           '(' + resourceViewParamsString + '):' + this.resourceType;
 
