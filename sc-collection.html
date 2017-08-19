@@ -12,10 +12,6 @@
       is: 'sc-collection',
 
       properties: {
-        isReady: {
-          type: Boolean,
-          value: false
-        },
         resourceType: {
           type: String,
           observer: 'loadValueObserver'
@@ -65,7 +61,8 @@
         },
         writeOnly: {
           type: Boolean,
-          value: false
+          value: false,
+          observer: 'loadValueObserver'
         },
         socket: {
           type: Object,
@@ -73,11 +70,26 @@
         },
         viewChannel: {
           type: Object
+        },
+        isReady: {
+          type: Boolean,
+          computed: 'areInputsReady(socket, resourceType, resourceView, resourceViewParams, resourcePageOffset, resourcePageSize, getCount, writeOnly)'
         }
       },
 
+      areInputsReady: function () {
+        for (var i in arguments) {
+          if (arguments.hasOwnProperty(i)) {
+            if (arguments[i] === undefined) {
+              return;
+            }
+          }
+        }
+        return true;
+      },
+
       loadValueObserver: function () {
-        if (this.socket && this.resourceType != null && this.resourceView != null && !this.writeOnly && this.resourceViewParams !== undefined) {
+        if (this.isReady) {
           this.loadValue();
         }
       },
@@ -199,8 +211,6 @@
               this.socket.on('authenticate', this.resubscribe);
             }
           }
-
-          this.isReady = true;
         }
       },
 
