@@ -178,8 +178,17 @@
                 } else {
                   var collectionStart = self.resourcePageOffset || 0;
                   var collectionEnd = collectionStart + self.resourcePageSize;
-                  if (packet.offset <= collectionEnd) {
-                    self.reloadCurrentPage();
+                  if (packet.type == 'update' && packet.action == 'move') {
+                    // A resource was moved around within the same view as a result
+                    // of an update operation on the resource.
+                    var minOffset = Math.min(packet.oldOffset, packet.newOffset);
+                    if (minOffset <= collectionEnd) {
+                      self.reloadCurrentPage();
+                    }
+                  } else {
+                    if (packet.offset <= collectionEnd) {
+                      self.reloadCurrentPage();
+                    }
                   }
                 }
               };
