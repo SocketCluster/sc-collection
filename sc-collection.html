@@ -45,6 +45,11 @@
           type: Object,
           observer: 'loadValueObserver'
         },
+        resourceViewPrimaryKeys: {
+          type: Array,
+          value: null,
+          observer: 'loadValueObserver'
+        },
         resourceCount: {
           type: Number,
           notify: true
@@ -90,7 +95,11 @@
 
       loadValueObserver: function () {
         if (this.isReady) {
-          this.loadValue();
+          if (this.resourceViewPrimaryKeys == null) {
+            this.resourceViewPrimaryKeys = Object.keys(this.resourceViewParams || {});
+          } else {
+            this.loadValue();
+          }
         }
       },
 
@@ -237,14 +246,26 @@
 
       setupChannels: function () {
         var channelPrefix = 'crud>';
-        var resourceViewParamsString = jsonStableStringify(this.resourceViewParams || {});
+        var resourceViewParamsObject = this.resourceViewParams || {};
+        var viewParams = {};
+
+        (this.resourceViewPrimaryKeys || []).forEach(function (fieldName) {
+          viewParams[fieldName] = resourceViewParamsObject[fieldName];
+        });
+        var resourceViewParamsString = jsonStableStringify(viewParams);
         var viewChannelName = channelPrefix + this.resourceView +
           '(' + resourceViewParamsString + '):' + this.resourceType;
 
+        var subscribeOptions = {
+          data: {
+            viewParams: resourceViewParamsObject
+          }
+        };
+
         if (this.viewChannel) {
-          this.socket.subscribe(viewChannelName);
+          this.socket.subscribe(viewChannelName, subscribeOptions);
         } else {
-          this.viewChannel = this.socket.subscribe(viewChannelName);
+          this.viewChannel = this.socket.subscribe(viewChannelName, subscribeOptions);
         }
       },
 
