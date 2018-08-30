@@ -1,10 +1,10 @@
 import jsonStableStringify from '/node_modules/sc-json-stable-stringify/sc-json-stable-stringify.js';
-import socketClusterClient from '/node_modules/socketcluster-client-edge/socketcluster.js';
+import Emitter from '/node_modules/sc-component-emitter/sc-component-emitter.js';
 import SCModel from '/node_modules/sc-model/sc-model.js';
-const Emitter = socketClusterClient.Emitter;
 
 function SCCollection(options) {
   Emitter.call(this);
+
   this.socket = options.socket;
   this.type = options.type;
   this.fields = options.fields;
@@ -44,6 +44,14 @@ function SCCollection(options) {
 
   this.channel = this.socket.subscribe(viewChannelName, subscribeOptions);
 
+  this._handleSCModelError = (err) => {
+    this.emit('error', this._formatError(err));
+  };
+
+  this._handleSCModelChange = (event) => {
+    this.emit('modelChange', event);
+  };
+
   this._handleChannelData = (packet) => {
     if (packet == null) {
       this.reloadCurrentPage();
@@ -75,17 +83,33 @@ function SCCollection(options) {
     this.loadData();
   };
 
+  this._handleSubscriptionFailure = (err) => {
+    this.emit('error', this._formatError(err));
+  };
+
   // Fetch data once the subscribe is successful.
   this.channel.on('subscribe', this._handleSubscription);
+
   if (this.channel.state === 'subscribed') {
     this.loadData();
   }
+  this.channel.on('subscribeFail', this._handleSubscriptionFailure);
   this.socket.on('authenticate', this._handleAuthentication);
 }
 
 SCCollection.prototype = Object.create(Emitter.prototype);
 
 SCCollection.Emitter = Emitter;
+
+SCCollection.prototype._formatError = function (error) {
+  if (error) {
+    if (error.message) {
+      return new Error(error.message);
+    }
+    return new Error(error);
+  }
+  return error;
+};
 
 // Load values for the collection.
 SCCollection.prototype.loadData = function () {
@@ -108,7 +132,7 @@ SCCollection.prototype.loadData = function () {
 
   this.socket.emit('read', query, (err, result) => {
     if (err) {
-      throw new Error(err);
+      this.emit('error', this._formatError(err));
     } else {
       let existingItemsMap = {};
       let newIdsLookup = {};
@@ -126,12 +150,14 @@ SCCollection.prototype.loadData = function () {
         let tempId = result.data[i];
         newIdsLookup[tempId] = true;
         if (existingItemsMap[tempId] == null) {
-           let model = new SCModel({
+          let model = new SCModel({
             socket: this.socket,
             type: this.type,
             id: tempId,
             fields: this.fields
           });
+          model.on('error', this._handleSCModelError);
+          model.on('modelChange', this._handleSCModelChange);
           this.scModels[tempId] = model;
           newItems.push(model.value);
         } else {
@@ -146,13 +172,21 @@ SCCollection.prototype.loadData = function () {
         }
       });
 
+      let oldValue = this.value;
       this.value = newItems;
 
       if (result.count != null) {
         this.count = result.count;
       }
+
+      this.emit('change', {
+        resourceType: this.type,
+        oldValue: oldValue,
+        newValue: this.value
+      });
+
+      this.isLastPage = result.isLastPage;
     }
-    this.isLastPage = result.isLastPage;
   });
 };
 
@@ -197,7 +231,7 @@ SCCollection.prototype.create = function (newValue) {
 };
 
 SCCollection.prototype.delete = function (id) {
-  var query = {
+  let query = {
     type: this.type,
     id: id
   };
@@ -215,9 +249,15 @@ SCCollection.prototype.delete = function (id) {
 SCCollection.prototype.destroy = function () {
   this.socket.off('authenticate', this._handleAuthentication);
   this.channel.off('subscribe', this._handleSubscription);
+  this.channel.off('subscribeFail', this._handleSubscriptionFailure);
   if (!this.channel.watchers().length) {
     this.channel.unsubscribe();
   }
+  Object.values(this.scModels).forEach((scModel) => {
+    scModel.removeListener('error', this._handleSCModelError);
+    scModel.removeListener('modelChange', this._handleSCModelChange);
+    scModel.destroy();
+  });
 };
 
 export default SCCollection;
