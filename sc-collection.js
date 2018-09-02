@@ -1,6 +1,6 @@
-import jsonStableStringify from '/node_modules/sc-json-stable-stringify/sc-json-stable-stringify.js';
-import Emitter from '/node_modules/sc-component-emitter/sc-component-emitter.js';
-import SCModel from '/node_modules/sc-model/sc-model.js';
+import jsonStableStringify from '../sc-json-stable-stringify/sc-json-stable-stringify.js';
+import Emitter from '../sc-component-emitter/sc-component-emitter.js';
+import SCModel from '../sc-model/sc-model.js';
 
 function SCCollection(options) {
   Emitter.call(this);
