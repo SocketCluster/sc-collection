@@ -1,5 +1,5 @@
 # sc-collection
-Collection model component for SocketCluster
+SocketCluster collection model component for the front end.
 
 ## Setup
 
