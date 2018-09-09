@@ -49,6 +49,11 @@ function SCCollection(options) {
   };
 
   this._handleSCModelChange = (event) => {
+    this.value.forEach((modelValue, index) => {
+      if (modelValue.id === event.resourceId) {
+        this.value.splice(index, 1, modelValue);
+      }
+    });
     this.emit('modelChange', event);
   };
 
@@ -143,7 +148,7 @@ SCCollection.prototype.loadData = function () {
         existingItemsMap[currentItems[h].id] = currentItems[h];
       }
 
-      let newItems = [];
+      let oldValue = this.value.splice(0);
       let resultDataLen = result.data.length;
 
       for (let i = 0; i < resultDataLen; i++) {
@@ -156,12 +161,12 @@ SCCollection.prototype.loadData = function () {
             id: tempId,
             fields: this.fields
           });
-          model.on('error', this._handleSCModelError);
-          model.on('modelChange', this._handleSCModelChange);
           this.scModels[tempId] = model;
-          newItems.push(model.value);
+          this.value.push(model.value);
+          model.on('error', this._handleSCModelError);
+          model.on('change', this._handleSCModelChange);
         } else {
-          newItems.push(existingItemsMap[tempId]);
+          this.value.push(existingItemsMap[tempId]);
         }
       }
 
@@ -171,9 +176,6 @@ SCCollection.prototype.loadData = function () {
           delete this.scModels[resourceId];
         }
       });
-
-      let oldValue = this.value;
-      this.value = newItems;
 
       if (result.count != null) {
         this.count = result.count;
@@ -255,7 +257,7 @@ SCCollection.prototype.destroy = function () {
   }
   Object.values(this.scModels).forEach((scModel) => {
     scModel.removeListener('error', this._handleSCModelError);
-    scModel.removeListener('modelChange', this._handleSCModelChange);
+    scModel.removeListener('change', this._handleSCModelChange);
     scModel.destroy();
   });
 };
