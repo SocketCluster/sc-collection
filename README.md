@@ -1,15 +1,15 @@
 # sc-collection
-Collection model component for Polymer and SocketCluster
+Collection model component for SocketCluster
 
 ## Setup
 
 ```bash
-bower install sc-collection --save
+npm install sc-collection --save
 ```
 
-You can include it inside your Polymer components like this (example):
-```html
-<link rel="import" href="/bower_components/sc-collection/sc-collection.html">
+You can import it in your scripts like this (example):
+```js
+import SCCollection from '/node_modules/sc-collection/sc-collection.js';
 ```
 
 ## Usage
