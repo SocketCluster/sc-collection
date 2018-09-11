@@ -15,7 +15,7 @@ function SCCollection(options) {
   } else {
     this.viewPrimaryKeys = options.viewPrimaryKeys;
   }
-  this.pageOffset = options.pageOffset;
+  this.pageOffset = options.pageOffset || 0;
   this.pageSize = options.pageSize || 10;
   this.isLastPage = null;
   this.getCount = options.getCount;
