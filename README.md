@@ -1,5 +1,5 @@
 # SCCollection
-SocketCluster real-time collection model component for reactive front ends.
+SocketCluster real-time collection component for reactive front ends.
 
 ## Setup
 
@@ -73,7 +73,7 @@ Then you can bind this data to your template like this:
 
 The SCCollection tag supports the following attributes:
 
-- ```socket```:
+- ```socket```: A ```socketcluster-client``` socket; note that the same global socket object can be shared between multiple SCCollection and SCModel instances.
 - ```type```: This is the model/table name in RethinkDB.
 - ```fields```: The document fields to load for this collection.
 - ```view```: The view to use for this collection. See https://github.com/SocketCluster/sc-crud-rethink for details about views.
