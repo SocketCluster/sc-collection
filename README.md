@@ -62,6 +62,7 @@ data: function () {
 Then you can bind this data to your template like this:
 
 ```html
+// Iterate over the products array and render available properties of each product.
 <tr v-for="product of products">
   <td>{{product.name}}</td>
   <td>{{product.qty}}</td>
