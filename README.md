@@ -1,5 +1,5 @@
 # SCCollection
-SocketCluster collection model component for the front end.
+SocketCluster real-time collection model component for reactive front ends.
 
 ## Setup
 
