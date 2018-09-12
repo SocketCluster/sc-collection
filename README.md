@@ -1,4 +1,4 @@
-# sc-collection
+# SCCollection
 SocketCluster collection model component for the front end.
 
 ## Setup
@@ -16,40 +16,69 @@ import SCCollection from '/node_modules/sc-collection/sc-collection.js';
 
 See https://github.com/socketcluster/sc-sample-inventory for sample app which demonstrates this component in action.
 
-This is what an sc-collection might look like:
+An SCCollection object can be instantiated like this:
 
-```html
-<sc-collection id="category-products" realtime="{{realtime}}" resource-type="Product" resource-value="{{categoryProducts}}" resource-view="categoryView" resource-view-parms="{{viewParmsObject}}" resource-page-offset="{{pageOffsetStart}}" resource-page-size="{{pageSize}}" resource-count="{{itemCount}}"></sc-collection>
-
+```js
+this.productsCollection = new SCCollection({
+  // Pass the SocketCluster socket object.
+  socket: pageOptions.socket,
+  type: 'Product',
+  fields: ['name', 'qty', 'price'],
+  view: 'categoryView',
+  viewParams: {category: this.categoryId},
+  pageOffset: 0,
+  pageSize: 5,
+  getCount: true
+});
 ```
 
-An sc-collection allows you to read and manipulate a collection of documents from RethinkDB.
-In the example above, the ```resource-value="{{categoryProducts}}"``` binds the collection's data to a ```categoryProducts``` array.
-The ```categoryProducts``` array will hold objects in the form ```{id: '644e1dd7-2a7f-18fb-b8ed-ed78c3f92c2b'}``` - These are placeholders for
-documents within the collection - Only the id field is set, if you want to display/manipulate additional fields/properties of each document, you will
-have to bind them to the collection like this:
+The SCCollection allows you to read and manipulate a collection of documents in RethinkDB from the front end.
+The ```productsCollection.value``` property is an array of `Product` objects which make up this collection; this array updates in real-time to match the collection on the server.
+The ```productsCollection.meta``` property is an object which holds metadata about the collection's current state. It has the following properties: ```pageOffset```, ```pageSize```, ```isLastPage``` and ```count```.
 
-```html
-<template is="dom-repeat" items="{{categoryProducts}}" filter="hasIdFilter" observe="id">
-  <sc-field resource-type="Product" resource-id="{{item.id}}" resource-field="qty" resource-value="{{item.qty}}"></sc-field>
-  <sc-field resource-type="Product" resource-id="{{item.id}}" resource-field="price" resource-value="{{item.price}}"></sc-field>
-  <sc-field resource-type="Product" resource-id="{{item.id}}" resource-field="name" resource-value="{{item.name}}"></sc-field>
-</template>
+If using a reactive front end framework like VueJS, you can bind the ```productsCollection.value``` and ```productsCollection.meta``` properties directly to your template since the array/object reference never changes (only the internal values/properties change).
+In VueJS, you can instantiate and attach the collection value and metadata to your component like this:
+
+```js
+data: function () {
+  this.productsCollection = new SCCollection({
+    socket: pageOptions.socket,
+    type: 'Product',
+    fields: ['name', 'qty', 'price'],
+    view: 'categoryView',
+    viewParams: {category: this.categoryId},
+    pageOffset: 0,
+    pageSize: 5,
+    getCount: true
+  });
+
+  return {
+    products: this.productsCollection.value,
+    productsMeta: this.productsCollection.meta
+  };
+},
 ```
 
-See https://github.com/SocketCluster/sc-field for more details.
+Then you can bind this data to your template like this:
+
+```html
+<tr v-for="product of products">
+  <td>{{product.name}}</td>
+  <td>{{product.qty}}</td>
+  <td>{{product.price}}</td>
+</tr>
+```
 
 ## Supported attributes
 
-The sc-collection tag supports the following attributes:
+The SCCollection tag supports the following attributes:
 
-- ```resource-type```: This is the model/table name in RethinkDB.
-- ```resource-value```: The binding for the current page of results/documents from RethinkDB (updated in realtime) - This is the output of the component.
-- ```resource-view```: The view to use for this collection. See https://github.com/SocketCluster/sc-crud-rethink for details about views.
-- ```resource-view-params```: This should be a JSON object which will be used for filtering results for your view. This attribute is compulsory - If you don't need any view params on the server-side, just set it to null or declare the attribute on the tag without any value.
+- ```socket```:
+- ```type```: This is the model/table name in RethinkDB.
+- ```fields```: The document fields to load for this collection.
+- ```view```: The view to use for this collection. See https://github.com/SocketCluster/sc-crud-rethink for details about views.
+- ```viewParams```: This should be a JSON object which will be used for filtering results for your view.
 If you are using the sc-crud-rethink plugin on the backend, this data will be passed as the third argument to your transform function on your schema.
-- ```resource-page-offset```: An integer which represents the current page of results within the collection.
-- ```resource-page-size```: The number of results per page.
-- ```resource-count```: This outputs the total number of documents within the view/collection.
-- ```realtime```: A boolean which allows you to toggle between a realtime/static view of the collection - Note that this doesn't affect the realtime
-updating of individual sc-field components which are attached to the collection.
+- ```pageOffset```: An integer which represents the current page of results within the collection.
+- ```pageSize```: The number of results per page.
+- ```getCount```: This is ```false``` by default; if set to ```true```, the ```collection.meta.count``` property will be populated with the total number of items in the collection; otherwise it always stays null (performance is better if ```getCount``` is ```false```).
