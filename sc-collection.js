@@ -15,9 +15,12 @@ function SCCollection(options) {
   } else {
     this.viewPrimaryKeys = options.viewPrimaryKeys;
   }
-  this.pageOffset = options.pageOffset || 0;
-  this.pageSize = options.pageSize || 10;
-  this.isLastPage = null;
+  this.meta = {
+    pageOffset: options.pageOffset || 0,
+    pageSize: options.pageSize || 10,
+    isLastPage: null,
+    count: null
+  };
   this.getCount = options.getCount;
   this.disableRealtime = options.disableRealtime;
   this.writeOnly = options.writeOnly;
@@ -61,8 +64,8 @@ function SCCollection(options) {
     if (packet == null) {
       this.reloadCurrentPage();
     } else {
-      let collectionStart = this.pageOffset || 0;
-      let collectionEnd = collectionStart + this.pageSize;
+      let collectionStart = this.meta.pageOffset || 0;
+      let collectionEnd = collectionStart + this.meta.pageSize;
       if (packet.type == 'update' && packet.action == 'move') {
         // A resource was moved around within the same view as a result
         // of an update operation on the resource.
@@ -121,15 +124,15 @@ SCCollection.prototype.loadData = function () {
   let query = {
     type: this.type
   };
-  query.offset = this.pageOffset || 0;
+  query.offset = this.meta.pageOffset || 0;
   if (this.view != null) {
     query.view = this.view;
   }
   if (this.viewParams != null) {
     query.viewParams = this.viewParams;
   }
-  if (this.pageSize) {
-    query.pageSize = this.pageSize;
+  if (this.meta.pageSize) {
+    query.pageSize = this.meta.pageSize;
   }
   if (this.getCount) {
     query.getCount = true;
@@ -178,7 +181,7 @@ SCCollection.prototype.loadData = function () {
       });
 
       if (result.count != null) {
-        this.count = result.count;
+        this.meta.count = result.count;
       }
 
       this.emit('change', {
@@ -187,7 +190,7 @@ SCCollection.prototype.loadData = function () {
         newValue: this.value
       });
 
-      this.isLastPage = result.isLastPage;
+      this.meta.isLastPage = result.isLastPage;
     }
   });
 };
@@ -199,19 +202,19 @@ SCCollection.prototype.reloadCurrentPage = function () {
 };
 
 SCCollection.prototype.fetchNextPage = function () {
-  if (!this.isLastPage) {
-    this.pageOffset += this.pageSize;
+  if (!this.meta.isLastPage) {
+    this.meta.pageOffset += this.meta.pageSize;
     this.reloadCurrentPage();
   }
 };
 
 SCCollection.prototype.fetchPreviousPage = function () {
-  if (this.pageOffset > 0) {
-    let prevOffset = this.pageOffset - this.pageSize;
+  if (this.meta.pageOffset > 0) {
+    let prevOffset = this.meta.pageOffset - this.meta.pageSize;
     if (prevOffset < 0) {
       prevOffset = 0;
     }
-    this.pageOffset = prevOffset;
+    this.meta.pageOffset = prevOffset;
     this.reloadCurrentPage();
   }
 };
