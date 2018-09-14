@@ -259,7 +259,7 @@ SCCollection.prototype.destroy = function () {
   this.channel.unwatch(this._handleChannelData);
 
   if (!this.channel.watchers().length) {
-    this.channel.unsubscribe();
+    this.channel.destroy();
   }
   Object.values(this.scModels).forEach((scModel) => {
     scModel.removeListener('error', this._handleSCModelError);
