@@ -255,6 +255,9 @@ SCCollection.prototype.destroy = function () {
   this.socket.off('authenticate', this._handleAuthentication);
   this.channel.off('subscribe', this._handleSubscription);
   this.channel.off('subscribeFail', this._handleSubscriptionFailure);
+
+  this.channel.unwatch(this._handleChannelData);
+
   if (!this.channel.watchers().length) {
     this.channel.unsubscribe();
   }
