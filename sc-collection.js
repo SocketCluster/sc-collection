@@ -22,33 +22,27 @@ function SCCollection(options) {
     count: null
   };
   this.getCount = options.getCount;
-  this.disableRealtime = options.disableRealtime;
+  this.realtimeCollection = options.realtimeCollection == null ? true : options.realtimeCollection;
   this.writeOnly = options.writeOnly;
 
   this.scModels = {};
   this.value = [];
 
-  let channelPrefix = 'crud>';
-  let viewParamsObject = this.viewParams || {};
-  let viewParams = {};
-
-  (this.viewPrimaryKeys || []).forEach(function (fieldName) {
-    viewParams[fieldName] = viewParamsObject[fieldName];
-  });
-  let viewParamsString = jsonStableStringify(viewParams);
-  let viewChannelName = channelPrefix + this.view +
-    '(' + viewParamsString + '):' + this.type;
-
-  let subscribeOptions = {
-    data: {
-      viewParams: viewParamsObject
-    }
+  this._triggerCollectionError = (error) => {
+    let err = this._formatError(error);
+    // Throw error in different stack frame so that error handling
+    // cannot interfere with a reconnect action.
+    setTimeout(() => {
+      if (this.listeners('error').length < 1) {
+        throw err;
+      } else {
+        this.emit('error', err);
+      }
+    }, 0);
   };
 
-  this.channel = this.socket.subscribe(viewChannelName, subscribeOptions);
-
   this._handleSCModelError = (err) => {
-    this.emit('error', this._formatError(err));
+    this._triggerCollectionError(err);
   };
 
   this._handleSCModelChange = (event) => {
@@ -59,6 +53,22 @@ function SCCollection(options) {
     });
     this.emit('modelChange', event);
   };
+
+  if (this.writeOnly) {
+    return;
+  }
+
+  if (!this.realtimeCollection) {
+    // This is to account for socket reconnects - After recovering from a lost connection,
+    // we will re-fetch the whole value to make sure that we haven't missed any updates made to it.
+    this.socket.on('connect', (status) => {
+      this.loadData();
+    });
+    if (this.socket.state == 'open') {
+      this.loadData();
+    }
+    return;
+  }
 
   this._handleChannelData = (packet) => {
     if (packet == null) {
@@ -81,6 +91,25 @@ function SCCollection(options) {
     }
   };
 
+  let channelPrefix = 'crud>';
+  let viewParamsObject = this.viewParams || {};
+  let viewParams = {};
+
+  (this.viewPrimaryKeys || []).forEach(function (fieldName) {
+    viewParams[fieldName] = viewParamsObject[fieldName];
+  });
+  let viewParamsString = jsonStableStringify(viewParams);
+  let viewChannelName = channelPrefix + this.view +
+    '(' + viewParamsString + '):' + this.type;
+
+  let subscribeOptions = {
+    data: {
+      viewParams: viewParamsObject
+    }
+  };
+
+  this.channel = this.socket.subscribe(viewChannelName, subscribeOptions);
+
   this._handleAuthentication = () => {
     this.channel.subscribe();
   };
@@ -92,7 +121,7 @@ function SCCollection(options) {
   };
 
   this._handleSubscriptionFailure = (err) => {
-    this.emit('error', this._formatError(err));
+    this._triggerCollectionError(err);
   };
 
   // Fetch data once the subscribe is successful.
@@ -121,6 +150,11 @@ SCCollection.prototype._formatError = function (error) {
 
 // Load values for the collection.
 SCCollection.prototype.loadData = function () {
+  if (this.writeOnly) {
+    this._triggerCollectionError('Cannot load values for an SCCollection declared as write-only');
+    return;
+  }
+
   let query = {
     type: this.type
   };
@@ -140,7 +174,7 @@ SCCollection.prototype.loadData = function () {
 
   this.socket.emit('read', query, (err, result) => {
     if (err) {
-      this.emit('error', this._formatError(err));
+      this._triggerCollectionError(err);
     } else {
       let existingItemsMap = {};
       let newIdsLookup = {};
@@ -252,14 +286,16 @@ SCCollection.prototype.delete = function (id) {
 };
 
 SCCollection.prototype.destroy = function () {
-  this.socket.off('authenticate', this._handleAuthentication);
-  this.channel.off('subscribe', this._handleSubscription);
-  this.channel.off('subscribeFail', this._handleSubscriptionFailure);
+  if (this.channel) {
+    this.socket.off('authenticate', this._handleAuthentication);
+    this.channel.off('subscribe', this._handleSubscription);
+    this.channel.off('subscribeFail', this._handleSubscriptionFailure);
 
-  this.channel.unwatch(this._handleChannelData);
+    this.channel.unwatch(this._handleChannelData);
 
-  if (!this.channel.watchers().length) {
-    this.channel.destroy();
+    if (!this.channel.watchers().length) {
+      this.channel.destroy();
+    }
   }
   Object.values(this.scModels).forEach((scModel) => {
     scModel.removeListener('error', this._handleSCModelError);
