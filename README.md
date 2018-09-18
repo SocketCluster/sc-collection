@@ -1,13 +1,16 @@
 # SCCollection
 SocketCluster real-time collection component for reactive front ends.
+Designed to work with `sc-crud-rethink` https://github.com/SocketCluster/sc-crud-rethink
 
 ## Setup
+
+Inside the directory from which front end files are served, run the command:
 
 ```bash
 npm install sc-collection --save
 ```
 
-You can import it in your scripts like this (example):
+You can import it in your scripts like this (example; your exact path may differ):
 ```js
 import SCCollection from '/node_modules/sc-collection/sc-collection.js';
 ```
