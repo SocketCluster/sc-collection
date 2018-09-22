@@ -93,14 +93,14 @@ function SCCollection(options) {
 
   let channelPrefix = 'crud>';
   let viewParamsObject = this.viewParams || {};
-  let viewPrimaryKeys = {};
+  let viewPrimaryParams = {};
 
-  (this.viewPrimaryKeys || []).forEach(function (field) {
-    viewPrimaryKeys[field] = viewParamsObject[field] === undefined ? null : viewParamsObject[field];
+  this.viewPrimaryKeys.forEach(function (field) {
+    viewPrimaryParams[field] = viewParamsObject[field] === undefined ? null : viewParamsObject[field];
   });
-  let viewPrimaryKeysString = jsonStableStringify(viewPrimaryKeys);
+  let viewPrimaryParamsString = jsonStableStringify(viewPrimaryParams);
   let viewChannelName = channelPrefix + this.view +
-    '(' + viewPrimaryKeysString + '):' + this.type;
+    '(' + viewPrimaryParamsString + '):' + this.type;
 
   let subscribeOptions = {
     data: {
