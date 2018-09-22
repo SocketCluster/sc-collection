@@ -1,6 +1,6 @@
 {
   "name": "sc-collection",
-  "version": "6.1.5",
+  "version": "6.1.6",
   "description": "SocketCluster collection component for the front end",
   "main": "sc-collection.js",
   "dependencies": {
