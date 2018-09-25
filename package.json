@@ -6,7 +6,7 @@
   "dependencies": {
     "sc-component-emitter": "^1.2.1",
     "sc-json-stable-stringify": "^2.0.0",
-    "sc-model": "^1.1.1"
+    "sc-model": "^1.1.5"
   },
   "devDependencies": {},
   "scripts": {
