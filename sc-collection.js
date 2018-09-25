@@ -71,24 +71,7 @@ function SCCollection(options) {
   }
 
   this._handleChannelData = (packet) => {
-    if (packet == null) {
-      this.reloadCurrentPage();
-    } else {
-      let collectionStart = this.meta.pageOffset || 0;
-      let collectionEnd = collectionStart + this.meta.pageSize;
-      if (packet.type == 'update' && packet.action == 'move') {
-        // A resource was moved around within the same view as a result
-        // of an update operation on the resource.
-        let minOffset = Math.min(packet.oldOffset, packet.newOffset);
-        if (minOffset <= collectionEnd) {
-          this.reloadCurrentPage();
-        }
-      } else {
-        if (packet.offset <= collectionEnd) {
-          this.reloadCurrentPage();
-        }
-      }
-    }
+    this.reloadCurrentPage();
   };
 
   let channelPrefix = 'crud>';
